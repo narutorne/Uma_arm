@@ -231,7 +231,7 @@ def count_SSR_kmeans(rarelity_cnt):
         y = clf.predict(dataset[i].reshape(1, -1))
         #print(y)
         rarelity_cnt[y[0]] += 1
-    print(rarelity_cnt) #[SSR, R, SR]
+    print(rarelity_cnt) #[R, SR, SSR]
 
     
 #リセマラの動作実行 本体
@@ -283,7 +283,7 @@ def resemara_action():
     
 
     #SSRの枚数判定
-    num_SSR = rarelity_cnt[0]
+    num_SSR = rarelity_cnt[2]
     #num_SSR = count_SSR() #pyautoguiのテンプレートマッチング
     print("num_SSR : ", num_SSR)
     if num_SSR >= 4:
