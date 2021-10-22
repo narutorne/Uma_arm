@@ -22,7 +22,8 @@ def screenshot_all():
 
 #エミュレータを最前面に出す
 def foreground():
-    hwnd = win32gui.FindWindow(None, 'BlueStacks')
+    print("hello")
+    hwnd = win32gui.FindWindow(None, 'BlueStacks 5')
     win32gui.SetWindowPos(hwnd,win32con.HWND_TOPMOST,0,0,0,0,win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
     left, top, right, bottom = win32gui.GetWindowRect(hwnd)
     print(left, top, right, bottom)
@@ -93,27 +94,28 @@ def image_matching_and_click(window, button):
 def screenshot_10times(): 
     dirs = glob.glob("./rarelity/*.PNG")
     screenshot = pg.screenshot(region = (35, 91, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+1))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(1))
     screenshot = pg.screenshot(region = (122, 91, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+2))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(2))
     screenshot = pg.screenshot(region = (209, 91, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+3))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(3))
     screenshot = pg.screenshot(region = (78, 188, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+4))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(4))
     screenshot = pg.screenshot(region = (166, 188, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+5))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(5))
     screenshot = pg.screenshot(region = (35, 286, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+6))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(6))
     screenshot = pg.screenshot(region = (122, 286, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+7))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(7))
     screenshot = pg.screenshot(region = (209, 286, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+8))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(8))
     screenshot = pg.screenshot(region = (78, 384, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+9))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(9))
     screenshot = pg.screenshot(region = (166, 384, 13, 10))
-    screenshot.save('./rarelity/{:04d}.PNG'.format(len(dirs)+10))
+    screenshot.save('./rarelity/{:04d}.PNG'.format(10))
 
-#ガチャ結果 → SSRの枚数カウント
+#pyautoguiのテンプレートマッチングによる
+#ガチャ結果 → SSRの枚数カウント 
 def count_SSR():
     im_SSR = cv2.imread("./Template/im_SSR.png")
     cnt_SSR = 0
@@ -170,21 +172,68 @@ def count_SSR():
         #plt.imshow(dst)
     return cnt_SSR
 
-#ガチャ結果 → SSRの枚数カウント
 #k-means法を用いた判別
-#def count_SSR_kmeans(rarelity_cnt):
-#    screenshot_10times() 
+#ガチャ結果 → SSRの枚数カウント
+def count_SSR_kmeans(rarelity_cnt):
+    
+    from PIL import Image
+    from sklearn.decomposition import IncrementalPCA
+    from sklearn.cluster import KMeans
 
+    #Numpy配列に変換する
+    def img_to_matrix(img):
+        img_array = np.asarray(img)
+        return img_array
 
+    #配列を平坦化する
+    def flatten_img(img_array):
+        s = img_array.shape[0] * img_array.shape[1] * img_array.shape[2]
+        img_width = img_array.reshape(1, s)
+        #print(img_width)
+        return img_width[0]
 
+    screenshot_10times() 
+    #pickleファイルをロード
+    import pickle
+    #pickleファイルのファイルパスを指定
+    with open('./uma_kmeans.pkl', 'rb') as fp:
+        clf = pickle.load(fp)
 
+    dataset = []
+    img_paths = []
 
+    #imgファイルのパスを指定
+    for file in glob.glob("./rarelity/*.PNG"):
+        img_paths.append(file)
 
+    #print(img_paths)
+    img_paths.sort()
+    #print(img_paths)
 
+    #print("Image number:", len(img_paths))
+    #print("Image list make done.")
+    #print(img_paths)
 
+    for i in img_paths:
+        img = Image.open(i)
+        img = img_to_matrix(img)
+        img = flatten_img(img)
+        dataset.append(img)
 
+    #print(type(dataset))
+    dataset = np.array(dataset)
+    #print(dataset)
+    #print(dataset.shape)
+    #print("Dataset make done.")
 
+    #Kmeans
+    for i in range(10):
+        y = clf.predict(dataset[i].reshape(1, -1))
+        #print(y)
+        rarelity_cnt[y[0]] += 1
+    print(rarelity_cnt) #[SSR, R, SR]
 
+    
 #リセマラの動作実行 本体
 def resemara_action():
     #チュートリアルを終えてホーム画面に入ったところからスタート
@@ -194,6 +243,8 @@ def resemara_action():
     image_matching_and_click(p, "b_present.png")
     image_matching_and_click(p , "b_ikkatsu.png")
     time.sleep(1)
+    image_matching_and_click(p , "b_tojiru.png")
+    time.sleep(1)    
     image_matching_and_click(p , "b_tojiru.png")
     time.sleep(1)
     image_matching_and_click(p , "b_tojiru.png")
@@ -218,7 +269,7 @@ def resemara_action():
         screenshot = pg.screenshot(region = (10, 40, 280, 500)) #BlueStacks用のスクショサイズ
         screenshot.save('./sc_save/{}.PNG'.format(i+1))
 
-        SSR_count_SSR_kmeans(rarelity_cnt)
+        count_SSR_kmeans(rarelity_cnt)
 
         print(i)
         if i == 4:
@@ -232,7 +283,8 @@ def resemara_action():
     
 
     #SSRの枚数判定
-    num_SSR = count_SSR()
+    num_SSR = rarelity_cnt[0]
+    #num_SSR = count_SSR() #pyautoguiのテンプレートマッチング
     print("num_SSR : ", num_SSR)
     if num_SSR >= 4:
         print("SSRが4枚以上！")
@@ -277,7 +329,8 @@ def resemara_action():
     time.sleep(10)
     pg.moveTo(265, 65, duration = 1)
     time.sleep(10)
-    image_matching_and_click(p, "b_home_menu.png")
+    pg.click()
+    #image_matching_and_click(p, "b_home_menu.png")
     pg.moveTo(280, 280, duration = 0.5)
     pg.dragRel(0, 30, duration = 1)
     image_matching_and_click(p, "b_title.png")
@@ -325,11 +378,10 @@ def resemara_action():
     #ロビー画面に到着
     time.sleep(5)
 
-
 args = sys.argv
 
 #引数で与えた数字の回数だけリセマラ実行する
-for times in range(1:int(args[1])+1):
+for times in range(1, int(args[1])+1):
     print(times, ": riset marason start!")
     resemara_action()
     print(times, ": riset marason end!")
